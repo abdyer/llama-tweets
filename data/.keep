@@ -1,0 +1,9 @@
+# Tweet Archive Directory
+# 
+# This file ensures the data/ directory is preserved in Git.
+# 
+# To use the RAG application:
+# 1. Place your markdown tweet archive files (.md) in this directory
+# 2. Run: python rag_app.py --load-tweets --tweets-dir data
+# 
+# The system will automatically detect and process all .md files.

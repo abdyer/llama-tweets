@@ -1,3 +1,5 @@
 __pycache__/
+chroma_db/
+test_chroma_db/
 data/*.md
 COMPLETION_SUMMARY.md

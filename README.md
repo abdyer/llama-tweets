@@ -6,6 +6,8 @@ A **Retrieval Augmented Generation (RAG)** application that analyzes markdown tw
 
 - **Markdown Tweet Archive Support**: Processes tweet archives exported in markdown format
 - **Rich Metadata Extraction**: Extracts timestamps, URLs, and tweet IDs from markdown archives
+- **Persistent Vector Storage**: ChromaDB with persistent storage to avoid re-processing tweets
+- **Incremental Updates**: Automatically skips already embedded tweets for efficient processing
 - **Local LLM Integration**: Uses Ollama for both embeddings and text generation
 - **Vector Search**: ChromaDB for efficient similarity search
 - **Interactive Chat**: Command-line interface for querying tweet history

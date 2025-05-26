@@ -10,22 +10,28 @@ class TweetEmbedder:
     A class to handle tweet embedding and storage using Ollama and ChromaDB.
     """
     
-    def __init__(self, model_name: str = "mxbai-embed-large", collection_name: str = "tweets"):
+    def __init__(self, model_name: str = "mxbai-embed-large", collection_name: str = "tweets", 
+                 persist_directory: str = "./chroma_db"):
         """
         Initialize the TweetEmbedder with specified model and collection.
         
         Args:
             model_name: The Ollama embedding model to use
             collection_name: The ChromaDB collection name
+            persist_directory: Directory to store the persistent ChromaDB database
         """
         self.model_name = model_name
         self.collection_name = collection_name
-        self.client = chromadb.Client()
+        self.persist_directory = persist_directory
+        
+        # Create persistent ChromaDB client
+        self.client = chromadb.PersistentClient(path=persist_directory)
         
         # Create or get the collection
         try:
             self.collection = self.client.get_collection(name=collection_name)
-            print(f"Loaded existing collection '{collection_name}'")
+            count = self.collection.count()
+            print(f"Loaded existing collection '{collection_name}' with {count} documents")
         except:
             self.collection = self.client.create_collection(name=collection_name)
             print(f"Created new collection '{collection_name}'")
@@ -153,16 +159,41 @@ class TweetEmbedder:
     def embed_tweets(self, tweets: List[Dict[str, Any]]) -> None:
         """
         Generate embeddings for tweets and store them in ChromaDB.
+        Only processes tweets that haven't been embedded yet.
         
         Args:
             tweets: List of tweet dictionaries to embed
         """
-        print(f"Generating embeddings for {len(tweets)} tweets using {self.model_name}...")
+        print(f"Checking {len(tweets)} tweets for embedding using {self.model_name}...")
         
-        for i, tweet in enumerate(tweets):
+        # Check for already embedded tweets
+        embedded_tweet_ids = self._get_embedded_tweet_ids()
+        print(f"Found {len(embedded_tweet_ids)} already embedded tweets")
+        
+        # Filter out already embedded tweets
+        new_tweets = []
+        skipped_count = 0
+        
+        for tweet in tweets:
+            tweet_id = tweet.get('tweet_id', f"unknown_{len(new_tweets)}")
+            if tweet_id in embedded_tweet_ids:
+                skipped_count += 1
+            else:
+                new_tweets.append(tweet)
+        
+        print(f"Skipping {skipped_count} already embedded tweets")
+        print(f"Processing {len(new_tweets)} new tweets...")
+        
+        if not new_tweets:
+            print("No new tweets to embed!")
+            return
+        
+        processed_count = 0
+        for tweet in new_tweets:
             try:
                 # Extract content for embedding
                 tweet_content = tweet['content']
+                tweet_id = tweet.get('tweet_id', f"unknown_{processed_count}")
                 
                 # Generate embedding using Ollama
                 response = ollama.embed(model=self.model_name, input=tweet_content)
@@ -170,7 +201,7 @@ class TweetEmbedder:
                 
                 # Prepare metadata for storage
                 metadata = {
-                    "tweet_id": tweet.get('tweet_id', str(i)),
+                    "tweet_id": tweet_id,
                     "length": len(tweet_content),
                     "source_file": tweet.get('source_file', 'unknown'),
                     "format": tweet.get('format', 'markdown')
@@ -184,22 +215,28 @@ class TweetEmbedder:
                 if tweet.get('url'):
                     metadata['url'] = tweet['url']
                 
+                # Use tweet_id as the document ID for consistent deduplication
+                doc_id = f"tweet_{tweet_id}"
+                
                 # Store in ChromaDB
                 self.collection.add(
-                    ids=[f"{self.collection_name}_{i}"],
+                    ids=[doc_id],
                     embeddings=[embeddings],  # Wrap in list for ChromaDB
                     documents=[tweet_content],
                     metadatas=[metadata]
                 )
                 
-                if (i + 1) % 5 == 0:
-                    print(f"Processed {i + 1}/{len(tweets)} tweets")
+                processed_count += 1
+                if processed_count % 5 == 0:
+                    print(f"Processed {processed_count}/{len(new_tweets)} new tweets")
                     
             except Exception as e:
-                print(f"Error processing tweet {i}: {e}")
+                print(f"Error processing tweet {tweet_id}: {e}")
                 continue
         
-        print("Embedding process completed!")
+        total_count = self.collection.count()
+        print(f"Embedding process completed! Added {processed_count} new tweets.")
+        print(f"Total tweets in collection: {total_count}")
     
     def search_similar_tweets(self, query: str, n_results: int = 3) -> Dict[str, Any]:
         """
@@ -242,5 +279,47 @@ class TweetEmbedder:
         return {
             "collection_name": self.collection_name,
             "document_count": count,
-            "model_name": self.model_name
+            "model_name": self.model_name,
+            "persist_directory": self.persist_directory
         }
+    
+    def clear_collection(self) -> None:
+        """
+        Clear all documents from the collection.
+        Use with caution!
+        """
+        try:
+            # Get all document IDs
+            results = self.collection.get()
+            if results['ids']:
+                self.collection.delete(ids=results['ids'])
+                print(f"Cleared {len(results['ids'])} documents from collection '{self.collection_name}'")
+            else:
+                print(f"Collection '{self.collection_name}' is already empty")
+        except Exception as e:
+            print(f"Error clearing collection: {e}")
+    
+    def _is_tweet_already_embedded(self, tweet_id: str) -> bool:
+        """Check if a tweet is already embedded in the collection."""
+        try:
+            results = self.collection.get(
+                where={"tweet_id": tweet_id}
+            )
+            return len(results['ids']) > 0
+        except:
+            return False
+    
+    def _get_embedded_tweet_ids(self) -> set:
+        """Get all tweet IDs that are already embedded."""
+        try:
+            results = self.collection.get()
+            if 'metadatas' in results and results['metadatas']:
+                tweet_ids = set()
+                for metadata in results['metadatas']:
+                    if metadata and metadata.get('tweet_id'):
+                        tweet_ids.add(metadata['tweet_id'])
+                return tweet_ids
+            return set()
+        except Exception as e:
+            print(f"Warning: Could not retrieve embedded tweet IDs: {e}")
+            return set()

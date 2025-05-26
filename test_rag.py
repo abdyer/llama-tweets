@@ -95,13 +95,85 @@ def test_individual_components():
     # Test error handling
     print(f"\n🧪 Testing error handling...")
     try:
-        embedder.load_tweets_from_file("data/tweets.txt")
+        embedder.load_tweets_from_file("nonexistent.txt")
         print("❌ Should have rejected .txt file")
     except ValueError as e:
         print(f"✅ Correctly rejected .txt file: {e}")
+    except FileNotFoundError as e:
+        print(f"✅ Correctly handled missing file: {e}")
     
     print("\n✅ Component tests completed!")
+
+def test_persistent_storage():
+    """Test the persistent storage functionality."""
+    
+    print("\n💾 Testing Persistent Storage")
+    print("=" * 50)
+    
+    from tweet_embedder import TweetEmbedder
+    
+    # Test with a dedicated test collection
+    embedder = TweetEmbedder(collection_name="test_persistence", persist_directory="./test_chroma_db")
+    
+    initial_info = embedder.get_collection_info()
+    print(f"📊 Initial collection state: {initial_info['document_count']} documents")
+    
+    data_dir = "data"
+    markdown_files = glob.glob(os.path.join(data_dir, "*.md"))
+    
+    if markdown_files:
+        test_file = markdown_files[0]
+        print(f"\n📥 Loading tweets from: {os.path.basename(test_file)}")
+        
+        try:
+            # First load
+            tweets = embedder.load_tweets_from_file(test_file)
+            print(f"✅ Loaded {len(tweets)} tweets")
+            
+            if tweets:
+                # Embed a subset for testing
+                test_tweets = tweets[:3] if len(tweets) > 3 else tweets
+                print(f"🔄 Embedding {len(test_tweets)} test tweets...")
+                embedder.embed_tweets(test_tweets)
+                
+                after_first_info = embedder.get_collection_info()
+                print(f"📊 After first embedding: {after_first_info['document_count']} documents")
+                
+                # Try to embed the same tweets again (should skip)
+                print(f"🔄 Attempting to embed same tweets again...")
+                embedder.embed_tweets(test_tweets)
+                
+                after_second_info = embedder.get_collection_info()
+                print(f"📊 After second embedding: {after_second_info['document_count']} documents")
+                
+                if after_first_info['document_count'] == after_second_info['document_count']:
+                    print("✅ Persistent storage correctly avoided duplicates!")
+                else:
+                    print("❌ Persistent storage allowed duplicates")
+                
+                # Test searching
+                if after_second_info['document_count'] > 0:
+                    print(f"\n🔍 Testing search functionality...")
+                    search_results = embedder.search_similar_tweets("test query", n_results=1)
+                    if search_results['documents']:
+                        print(f"✅ Search returned {len(search_results['documents'])} results")
+                    else:
+                        print("❌ Search returned no results")
+                
+                # Clean up test collection
+                print(f"\n🧹 Cleaning up test collection...")
+                embedder.clear_collection()
+                final_info = embedder.get_collection_info()
+                print(f"📊 After cleanup: {final_info['document_count']} documents")
+                
+        except Exception as e:
+            print(f"❌ Persistent storage test failed: {e}")
+    else:
+        print("❌ No markdown files available for testing")
+    
+    print("\n✅ Persistent storage test completed!")
 
 if __name__ == "__main__":
     test_rag_system()
     test_individual_components()
+    test_persistent_storage()

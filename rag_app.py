@@ -21,17 +21,19 @@ class TweetRAG:
         self.generation_model = generation_model
         self.embedder = TweetEmbedder(model_name=embedding_model)
         
-    def load_and_embed_tweets(self, tweets_file: str = None, tweets_dir: str = None) -> None:
+    def load_and_embed_tweets(self, tweets_file: str = None, tweets_dir: str = None, 
+                             file_pattern: str = "*.md") -> None:
         """
         Load tweets from markdown file(s) and generate embeddings.
         
         Args:
             tweets_file: Path to a single markdown tweets file
             tweets_dir: Path to directory containing markdown tweet files
+            file_pattern: Glob pattern for files in directory (default: *.md)
         """
         if tweets_dir:
             # Load from directory
-            tweets = self.embedder.load_tweets_from_directory(tweets_dir)
+            tweets = self.embedder.load_tweets_from_directory(tweets_dir, file_pattern)
         elif tweets_file:
             # Load from single file
             tweets = self.embedder.load_tweets_from_file(tweets_file)
@@ -175,8 +177,7 @@ def main():
                 print(f"❌ Tweets directory not found: {args.tweets_dir}")
                 return
             print(f"📥 Loading tweets from directory: {args.tweets_dir} (pattern: {args.file_pattern})...")
-            rag.embedder.file_pattern = args.file_pattern  # Set pattern for directory loading
-            rag.load_and_embed_tweets(tweets_dir=args.tweets_dir)
+            rag.load_and_embed_tweets(tweets_dir=args.tweets_dir, file_pattern=args.file_pattern)
         
         print("✅ Tweets loaded and embedded successfully!")
     

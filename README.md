@@ -53,13 +53,39 @@ Process one query without interactive mode:
 python rag_app.py --load-tweets --query "What technologies are mentioned?"
 ```
 
+### Control Context Size
+Adjust how many similar tweets to use as context (default: 50):
+```bash
+# Use fewer tweets for faster responses
+python rag_app.py --query "What music do I like?" --context-tweets 10
+
+# Use more tweets for comprehensive analysis
+python rag_app.py --query "What are my interests?" --context-tweets 100
+```
+
 ### Advanced Options
 ```bash
 python rag_app.py \
   --tweets-file data/your-tweet-archive.md \
   --embedding-model mxbai-embed-large \
   --generation-model llama2 \
+  --context-tweets 20 \
   --load-tweets
+```
+
+### All Available Options
+```bash
+python rag_app.py [OPTIONS]
+
+Options:
+  --tweets-file TEXT        Path to a markdown tweets file (.md)
+  --tweets-dir TEXT         Path to directory containing markdown tweet files (default: data)
+  --file-pattern TEXT       File pattern for directory loading (default: *.md)
+  --embedding-model TEXT    Ollama embedding model to use (default: mxbai-embed-large)
+  --generation-model TEXT   Ollama generation model to use (default: llama2)
+  --context-tweets INT      Number of similar tweets to use as context (default: 50)
+  --load-tweets            Load and embed tweets from file(s)
+  --query TEXT             Single query to process (non-interactive)
 ```
 
 ### Testing
@@ -119,10 +145,26 @@ Example markdown format:
 
 ## 🧪 Example Queries
 
+Try these example queries with different context sizes:
+
+```bash
+# Quick overview with fewer tweets
+python rag_app.py --query "What topics do I tweet about?" --context-tweets 10
+
+# Comprehensive analysis with more tweets
+python rag_app.py --query "What technologies are mentioned?" --context-tweets 50
+
+# Deep dive with maximum context
+python rag_app.py --query "What are my interests and activities over time?" --context-tweets 100
+```
+
+Sample queries to try:
 - "What technologies are mentioned in the tweets?"
 - "Tell me about AI and machine learning projects"
 - "What performance improvements were made?"
 - "What programming activities are described?"
+- "What music do I enjoy?"
+- "What are my hobbies and interests?"
 
 ## 🛠️ Technical Details
 
@@ -131,7 +173,7 @@ Example markdown format:
 2. **Metadata Processing**: Extract timestamps, URLs, and tweet IDs using regex parsing
 3. **Embedding Generation**: Use Ollama's `mxbai-embed-large` model
 4. **Vector Storage**: Store embeddings in ChromaDB with rich metadata
-5. **Query Processing**: Embed user query and find similar tweets
+5. **Query Processing**: Embed user query and find similar tweets (configurable: 1-100+ tweets)
 6. **Response Generation**: Use Ollama's `llama2` model with contextual tweet history
 
 ### Dependencies

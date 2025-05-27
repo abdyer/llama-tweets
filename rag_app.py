@@ -9,16 +9,18 @@ class TweetRAG:
     """
     
     def __init__(self, embedding_model: str = "mxbai-embed-large", 
-                 generation_model: str = "llama2"):
+                 generation_model: str = "llama2", n_context_tweets: int = 50):
         """
         Initialize the RAG application.
         
         Args:
             embedding_model: Model used for generating embeddings
             generation_model: Model used for text generation
+            n_context_tweets: Number of similar tweets to use as context
         """
         self.embedding_model = embedding_model
         self.generation_model = generation_model
+        self.n_context_tweets = n_context_tweets
         self.embedder = TweetEmbedder(model_name=embedding_model)
         
     def load_and_embed_tweets(self, tweets_file: str = None, tweets_dir: str = None, 
@@ -64,7 +66,7 @@ class TweetRAG:
         if len(tweets) > 3:
             print(f"  ... and {len(tweets) - 3} more tweets")
     
-    def generate_response(self, query: str, n_context_tweets: int = 3) -> str:
+    def generate_response(self, query: str, n_context_tweets: int = 50) -> str:
         """
         Generate a response to a query using relevant tweets as context.
         
@@ -125,7 +127,7 @@ Use the information from the tweets to provide a relevant and helpful response."
                 continue
             
             try:
-                response = self.generate_response(query)
+                response = self.generate_response(query, self.n_context_tweets)
                 print(f"\n🤖 Response:\n{response}\n")
                 print("-" * 50)
             except KeyboardInterrupt:
@@ -150,13 +152,16 @@ def main():
                        help="Load and embed tweets from file(s)")
     parser.add_argument("--query", type=str,
                        help="Single query to process (non-interactive)")
+    parser.add_argument("--context-tweets", type=int, default=50,
+                       help="Number of similar tweets to use as context (default: 50)")
     
     args = parser.parse_args()
     
     # Initialize RAG application
     rag = TweetRAG(
         embedding_model=args.embedding_model,
-        generation_model=args.generation_model
+        generation_model=args.generation_model,
+        n_context_tweets=args.context_tweets
     )
     
     # Load tweets if requested
@@ -183,7 +188,7 @@ def main():
     
     # Process single query or start interactive chat
     if args.query:
-        response = rag.generate_response(args.query)
+        response = rag.generate_response(args.query, args.context_tweets)
         print(f"\n🤖 Response:\n{response}")
     else:
         rag.interactive_chat()

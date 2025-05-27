@@ -113,7 +113,7 @@ Use the information from the tweets to provide a relevant and helpful response."
         """
         Start an interactive chat session.
         """
-        print("\n🤖 Tweet RAG Chat - Ask questions about the tweet history!")
+        print("\n🤖 Llama Tweets Chat - Ask questions about the tweet history!")
         print("Type 'quit' or 'exit' to end the session.\n")
         
         while True:
@@ -137,7 +137,7 @@ Use the information from the tweets to provide a relevant and helpful response."
                 print(f"❌ Error: {e}")
 
 def main():
-    parser = argparse.ArgumentParser(description="Tweet RAG Application")
+    parser = argparse.ArgumentParser(description="Llama Tweets")
     parser.add_argument("--tweets-file", 
                        help="Path to a markdown tweets file (.md)")
     parser.add_argument("--tweets-dir", default="data",

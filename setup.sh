@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "🦙 Setting up Tweet RAG Application..."
+echo "🦙 Setting up Llama Tweets..."
 
 # Check if Ollama is installed
 if ! command -v ollama &> /dev/null; then

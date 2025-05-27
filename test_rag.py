@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Test script for the Tweet RAG application with markdown tweet archives.
+Test script for the Llama Tweets RAG application.
 """
 
 from rag_app import TweetRAG

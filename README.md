@@ -1,4 +1,4 @@
-# Tweet RAG Application
+# Llama Tweets RAG Application
 
 A **Retrieval Augmented Generation (RAG)** application that analyzes markdown tweet archives using Ollama models. The system embeds tweets using local language models, stores them in a vector database, and answers questions based on the most relevant tweet content.
 
